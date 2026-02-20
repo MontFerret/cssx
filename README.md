@@ -1,8 +1,8 @@
 # cssx
 
-cssx is a tiny, standalone Go library that parses **extended CSS expressions** and compiles them into a linear **postfix pipeline IR**.
+cssx is a tiny, standalone Go library that parses extended CSS expressions and compiles them into a linear postfix pipeline IR.
 
-It **does not execute** anything and **does not depend** on a browser, CDP, or DOM. It only provides:
+It does not execute anything and does not depend on a browser, CDP, or DOM. It only provides:
 
 - Parser: `input string -> AST`
 - Builder: `AST -> Pipeline IR`
@@ -70,7 +70,7 @@ Pipeline:
 
 ### 1) Plain CSS selector mode
 
-If input does **not** start with `:`, it is treated as a plain selector.
+If input does not start with `:`, it is treated as a plain selector.
 
 ```
 .section .item
@@ -105,9 +105,9 @@ Rules:
 
 Rules:
 
-- `>>` splits pipeline **only at top level** (not inside quotes/brackets/parens)
-- First segment: **plain selector** (must not start with `:`)
-- Each following segment: **must be a call** `:name(...)`
+- `>>` splits pipeline only at top level (not inside quotes/brackets/parens)
+- First segment: plain selector (must not start with `:`)
+- Each following segment: must be a call `:name(...)`
 - Zero-arg calls must still include parentheses: `:text()`
 
 Compiles to:
