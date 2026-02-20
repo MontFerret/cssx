@@ -9,7 +9,7 @@ import (
 func Parse(input string) (AST, error) {
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
-		return AST{}, &ParseError{Msg: "empty input", Pos: 0}
+		return AST{}, &ParseError{Message: "empty input", Pos: 0}
 	}
 
 	// Pipeline sugar: base >> :call() >> :call()
@@ -25,7 +25,7 @@ func Parse(input string) (AST, error) {
 	p := newParser(input, 0)
 	p.skipWS()
 	if p.eof() {
-		return AST{}, &ParseError{Msg: "empty input", Pos: 0}
+		return AST{}, &ParseError{Message: "empty input", Pos: 0}
 	}
 	if p.peek() == ':' {
 		expr, err := p.parseExpr()
@@ -85,7 +85,7 @@ func (p *parser) skipWS() {
 }
 
 func (p *parser) errf(msg string, pos int) error {
-	return &ParseError{Msg: msg, Pos: p.base + pos}
+	return &ParseError{Message: msg, Pos: p.base + pos}
 }
 
 func (p *parser) parseExpr() (Expr, error) {
@@ -399,15 +399,15 @@ func splitPipelineSegments(input string) ([]segment, bool) {
 
 func parsePipelineSegments(segments []segment) (AST, error) {
 	if len(segments) == 0 {
-		return AST{}, &ParseError{Msg: "empty pipeline", Pos: 0}
+		return AST{}, &ParseError{Message: "empty pipeline", Pos: 0}
 	}
 
 	baseSeg, ok := trimSegment(segments[0])
 	if !ok {
-		return AST{}, &ParseError{Msg: "pipeline base selector is empty", Pos: segments[0].start}
+		return AST{}, &ParseError{Message: "pipeline base selector is empty", Pos: segments[0].start}
 	}
 	if strings.HasPrefix(baseSeg.text, ":") {
-		return AST{}, &ParseError{Msg: "pipeline base must be a selector", Pos: baseSeg.start}
+		return AST{}, &ParseError{Message: "pipeline base must be a selector", Pos: baseSeg.start}
 	}
 	base := &SelectorExpr{Raw: baseSeg.text, pos: baseSeg.start}
 
@@ -415,12 +415,12 @@ func parsePipelineSegments(segments []segment) (AST, error) {
 	for _, seg := range segments[1:] {
 		trimmed, ok := trimSegment(seg)
 		if !ok {
-			return AST{}, &ParseError{Msg: "pipeline stage is empty", Pos: seg.start}
+			return AST{}, &ParseError{Message: "pipeline stage is empty", Pos: seg.start}
 		}
 		p := newParser(trimmed.text, trimmed.start)
 		p.skipWS()
 		if p.eof() || p.peek() != ':' {
-			return AST{}, &ParseError{Msg: "pipeline stage must be a call", Pos: trimmed.start}
+			return AST{}, &ParseError{Message: "pipeline stage must be a call", Pos: trimmed.start}
 		}
 		call, err := p.parseCall()
 		if err != nil {

@@ -45,7 +45,7 @@ type Pipeline struct {
 // BuildPipeline compiles an AST into a postfix pipeline IR.
 func BuildPipeline(ast AST) (Pipeline, error) {
 	if ast.Expr == nil {
-		return Pipeline{}, &ParseError{Msg: "empty AST", Pos: 0}
+		return Pipeline{}, &ParseError{Message: "empty AST", Pos: 0}
 	}
 	var p Pipeline
 	if err := buildExpr(ast.Expr, &p); err != nil {
@@ -71,7 +71,7 @@ func buildExpr(expr Expr, p *Pipeline) error {
 		p.Ops = append(p.Ops, Op{Kind: OpCall, Name: e.Name, Arity: len(e.Args)})
 	case *PipelineExpr:
 		if e.Base == nil {
-			return &ParseError{Msg: "pipeline missing base selector", Pos: e.Pos()}
+			return &ParseError{Message: "pipeline missing base selector", Pos: e.Pos()}
 		}
 		if err := buildExpr(e.Base, p); err != nil {
 			return err
@@ -82,7 +82,7 @@ func buildExpr(expr Expr, p *Pipeline) error {
 			}
 		}
 	default:
-		return &ParseError{Msg: "unknown expression type", Pos: 0}
+		return &ParseError{Message: "unknown expression type", Pos: 0}
 	}
 	return nil
 }

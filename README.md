@@ -180,7 +180,7 @@ type Op struct {
 }
 
 type ParseError struct {
-    Msg string
+    Message string
     Pos int // byte offset
 }
 ```
