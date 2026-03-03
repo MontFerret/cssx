@@ -21,20 +21,20 @@ go get github.com/MontFerret/cssx
 package main
 
 import (
-    "fmt"
+	"fmt"
 
-    "github.com/MontFerret/cssx"
+	"github.com/MontFerret/cssx"
 )
 
 func main() {
-    pipeline, err := cssx.Compile(":text(:first(h1))")
-    if err != nil {
-        panic(err)
-    }
+	pipeline, err := cssx.Compile(`:attr("href", :first(a.cta))`)
+	if err != nil {
+		panic(err)
+	}
 
-    for _, op := range pipeline.Ops {
-        fmt.Printf("%s: %+v\n", op.Kind, op)
-    }
+	for _, op := range pipeline.Ops {
+		fmt.Printf("%s: %+v\n", op.Kind, op)
+	}
 }
 ```
 
@@ -48,22 +48,26 @@ Humans write nested pseudo calls like:
 
 cssx compiles them into a linear postfix pipeline:
 
-- native CSS selector steps (`Select`)
-- pseudo/function steps (`Call`)
-- constants (`Str`, `Num`)
+- selector steps (`Select`)
+- call steps (`Call`)
+- literal call args embedded in each `Call.Args`
 
 Example:
 
 Input:
 
 ```
-:text(:first(h1))
+:attr("href", :first(a.cta))
 ```
 
 Pipeline:
 
 ```
-[Select("h1"), Call("first",1), Call("text",1)]
+[
+  Select("a.cta"),
+  Call("first", Arity:1, Args:[]),
+  Call("attr", Arity:1, Args:[String("href")]),
+]
 ```
 
 ## Syntax
@@ -113,37 +117,56 @@ Rules:
 Compiles to:
 
 ```
-[Select(".section .item"), Num(2), Call("nth",1), Call("text",0)]
+[
+  Select(".section .item"),
+  Call("nth", Arity:0, Args:[Number(2)]),
+  Call("text", Arity:0, Args:[]),
+]
 ```
+
+## IR Contract
+
+### `Arity`
+
+`Op.Arity` is the number of non-literal expression args consumed from the stack.
+
+### `Args`
+
+`Op.Args` contains only literal arguments (`string` or `number`) in source order.
+
+### `literals-first` rule
+
+Literal args must come before expression args inside a call.
+
+Valid:
+
+- `:foo("x", 2, :bar(a))`
+
+Invalid:
+
+- `:foo(:bar(a), "x")`
+- `:foo(1, :bar(a), 2)`
+
+Invalid calls fail at compile time with:
+
+- `literal args must precede expression args`
 
 ## Supported Examples
 
-Plain selectors:
-
-- `.product` -> `[Select(".product")]`
-- `.section .item` -> `[Select(".section .item")]`
-
-Single pseudo:
-
-- `:count(.product)` -> `[Select(".product"), Call("count",1)]`
-- `:first(section)` -> `[Select("section"), Call("first",1)]`
-
-Nested pseudos:
-
-- `:text(:first(h1))` -> `[Select("h1"), Call("first",1), Call("text",1)]`
-- `:attr("href", :first(a.cta))` -> `[Str("href"), Select("a.cta"), Call("first",1), Call("attr",2)]`
-
-Selectors with commas inside:
-
-- `:first(a[href*="x,y"])` -> `[Select("a[href*="x,y"]"), Call("first",1)]`
-
-Mixed readability:
-
-- `:text(:nth(2, .section .item))` -> `[Num(2), Select(".section .item"), Call("nth",2), Call("text",1)]`
-
-Pipeline sugar:
-
-- `.section .item >> :nth(2) >> :text()` -> `[Select(".section .item"), Num(2), Call("nth",1), Call("text",0)]`
+- `.product`
+  - `[Select(".product")]`
+- `:count(.product)`
+  - `[Select(".product"), Call("count", Arity:1, Args:[])]`
+- `:text(:first(h1))`
+  - `[Select("h1"), Call("first", Arity:1, Args:[]), Call("text", Arity:1, Args:[])]`
+- `:attr("href", :first(a.cta))`
+  - `[Select("a.cta"), Call("first", Arity:1, Args:[]), Call("attr", Arity:1, Args:[String("href")])]`
+- `:first(a[href*="x,y"])`
+  - `[Select("a[href*=\"x,y\"]"), Call("first", Arity:1, Args:[])]`
+- `:text(:nth(2, .section .item))`
+  - `[Select(".section .item"), Call("nth", Arity:1, Args:[Number(2)]), Call("text", Arity:1, Args:[])]`
+- `.section .item >> :nth(2) >> :text()`
+  - `[Select(".section .item"), Call("nth", Arity:0, Args:[Number(2)]), Call("text", Arity:0, Args:[])]`
 
 ## Public API
 
@@ -167,36 +190,42 @@ Key types:
 
 ```go
 type Pipeline struct {
-    Ops []Op
+	Ops []Op
 }
 
 type Op struct {
-    Kind     OpKind
-    Selector string
-    Name     string
-    Arity    int
-    Str      string
-    Num      float64
+	Kind     OpKind
+	Selector string
+	Name     string
+	Arity    int
+	Args     []CallArg
+}
+
+type CallArg struct {
+	Kind CallArgKind
+	Str  string
+	Num  float64
 }
 
 type ParseError struct {
-    Message string
-    Pos int // byte offset
+	Message string
+	Pos     int // byte offset
 }
 ```
 
 ## Error Handling
 
-All syntax errors return `*ParseError` with a byte offset position.
+All syntax errors and compile-time IR validation errors return `*ParseError` with a byte offset position.
 
 Common error cases:
 
 - `:` (missing identifier)
 - `:text(` (unterminated call)
-- `:text(:first(h1)` (missing `)`)
+- `:text(:first(h1)` (missing `)`) 
 - `:attr("href" :first(a))` (missing comma)
 - empty input (whitespace only)
 - pipeline stage without `:name(...)`
+- mixed call arg order violating literals-first
 
 ## Non-Goals
 

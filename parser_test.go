@@ -47,6 +47,16 @@ func TestParsePipelineSugar(t *testing.T) {
 	}
 }
 
+func TestParseMixedArgOrderAllowed(t *testing.T) {
+	ast, err := Parse(":foo(:bar(a), \"x\")")
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+	if _, ok := ast.Expr.(*CallExpr); !ok {
+		t.Fatalf("expected CallExpr, got %T", ast.Expr)
+	}
+}
+
 func TestParseErrors(t *testing.T) {
 	cases := []string{
 		":",

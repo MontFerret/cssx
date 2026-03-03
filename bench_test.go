@@ -16,8 +16,10 @@ var benchInputs = []struct {
 }
 
 func BenchmarkParse(b *testing.B) {
+	b.ReportAllocs()
 	for _, tc := range benchInputs {
 		b.Run(tc.name, func(b *testing.B) {
+			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
 				if _, err := Parse(tc.input); err != nil {
 					b.Fatal(err)
@@ -28,6 +30,7 @@ func BenchmarkParse(b *testing.B) {
 }
 
 func BenchmarkBuildPipeline(b *testing.B) {
+	b.ReportAllocs()
 	asts := make([]AST, len(benchInputs))
 	for i, tc := range benchInputs {
 		ast, err := Parse(tc.input)
@@ -41,6 +44,7 @@ func BenchmarkBuildPipeline(b *testing.B) {
 	for i, tc := range benchInputs {
 		ast := asts[i]
 		b.Run(tc.name, func(b *testing.B) {
+			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
 				if _, err := BuildPipeline(ast); err != nil {
 					b.Fatal(err)
@@ -51,8 +55,10 @@ func BenchmarkBuildPipeline(b *testing.B) {
 }
 
 func BenchmarkCompile(b *testing.B) {
+	b.ReportAllocs()
 	for _, tc := range benchInputs {
 		b.Run(tc.name, func(b *testing.B) {
+			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
 				if _, err := Compile(tc.input); err != nil {
 					b.Fatal(err)
